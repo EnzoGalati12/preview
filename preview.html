@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Investimentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#07111f;
+      --panel:#0d1b2a;
+      --panel-2:#132238;
+      --text:#eaf2ff;
+      --muted:#94a3b8;
+      --accent:#5aa9e6;
+      --accent-2:#7bdff2;
+      --good:#57cc99;
+      --warn:#ffd166;
+      --border:rgba(255,255,255,.08);
+      --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,Segoe UI,Arial,sans-serif;
+      background:linear-gradient(180deg,#06101d 0%,#0a1524 100%);
+      color:var(--text);
+    }
+    .wrap{
+      max-width:1400px;
+      margin:0 auto;
+      padding:24px;
+    }
+    .hero{
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      align-items:flex-start;
+      margin-bottom:20px;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:clamp(28px,4vw,46px);
+      line-height:1;
+    }
+    .sub{
+      color:var(--muted);
+      margin:0;
+      max-width:800px;
+    }
+    .badge{
+      padding:8px 12px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(90,169,230,.1);
+      color:var(--accent-2);
+      white-space:nowrap;
+      font-size:14px;
+    }
+    .grid{
+      display:grid;
+      gap:16px;
+    }
+    .kpis{
+      grid-template-columns:repeat(4,1fr);
+      margin-bottom:16px;
+    }
+    .card{
+      background:linear-gradient(180deg,var(--panel) 0%,var(--panel-2) 100%);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .kpi-label{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:8px;
+    }
+    .kpi-value{
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+    .kpi-foot{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .main{
+      grid-template-columns:1.6fr .9fr;
+      margin-bottom:16px;
+    }
+    .section-title{
+      margin:0 0 14px;
+      font-size:18px;
+    }
+    .controls{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+    }
+    label{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      color:var(--muted);
+      font-size:12px;
+    }
+    input, select{
+      width:100%;
+      background:#0a1423;
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      outline:none;
+    }
+    input:focus,select:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(90,169,230,.12);
+    }
+    .btn-row{
+      display:flex;
+      gap:10px;
+      margin-top:14px;
+    }
+    button{
+      border:none;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary{
+      background:var(--accent);
+      color:#05111d;
+    }
+    .secondary{
+      background:#1f3148;
+      color:var(--text);
+    }
+    .charts{
+      grid-template-columns:1.3fr 1fr;
+      margin-bottom:16px;
+    }
+    .chart-box{
+      height:360px;
+    }
+    .milestones{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:10px;
+    }
+    .milestone{
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--border);
+      background:#0a1423;
+    }
+    .milestone strong{
+      display:block;
+      font-size:18px;
+      margin-bottom:5px;
+    }
+    .milestone span{
+      color:var(--muted);
+      font-size:12px;
+    }
+    .table-wrap{
+      overflow:auto;
+      max-height:560px;
+      border-radius:14px;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:980px;
+    }
+    th,td{
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      text-align:right;
+      font-size:13px;
+    }
+    th:first-child,td:first-child,
+    th:nth-child(2),td:nth-child(2){text-align:left}
+    th{
+      position:sticky;
+      top:0;
+      background:#0b1727;
+      z-index:2;
+      color:#c9d8ea;
+    }
+    tr:hover td{background:rgba(255,255,255,.025)}
+    .note{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+      margin-top:12px;
+    }
+    .footer{
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+      padding:12px 0 4px;
+    }
+    @media(max-width:1000px){
+      .kpis{grid-template-columns:repeat(2,1fr)}
+      .main,.charts{grid-template-columns:1fr}
+      .milestones{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:640px){
+      .wrap{padding:14px}
+      .hero{flex-direction:column}
+      .kpis{grid-template-columns:1fr}
+      .controls{grid-template-columns:1fr}
+      .milestones{grid-template-columns:1fr}
+      .chart-box{height:300px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Dashboard de Investimentos</h1>
+        <p class="sub">Simule sua evolução patrimonial mês a mês até 2040, alterando aportes, rentabilidade, inflação e meta da reserva diretamente no navegador.</p>
+      </div>
+      <div class="badge">Plano base: Set/2026 → Dez/2040</div>
+    </div>
+
+    <div class="grid kpis">
+      <div class="card">
+        <div class="kpi-label">Patrimônio inicial</div>
+        <div class="kpi-value" id="kpiInicial">—</div>
+        <div class="kpi-foot">CDB + Tesouro + reserva atual</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Patrimônio em 2040</div>
+        <div class="kpi-value" id="kpiFinal">—</div>
+        <div class="kpi-foot">Valor nominal projetado</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Total investido</div>
+        <div class="kpi-value" id="kpiInvestido">—</div>
+        <div class="kpi-foot">Capital inicial + novos aportes</div>
+      </div>
+      <div class="card">
+        <div class="kpi-label">Rendimento acumulado</div>
+        <div class="kpi-value" id="kpiRendimento">—</div>
+        <div class="kpi-foot">Diferença entre patrimônio e capital investido</div>
+      </div>
+    </div>
+
+    <div class="grid main">
+      <div class="card">
+        <h2 class="section-title">Evolução patrimonial</h2>
+        <div class="chart-box"><canvas id="evolutionChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Premissas editáveis</h2>
+        <div class="controls">
+          <label>CDB inicial
+            <input type="number" id="cdbInicial" step="0.01" value="9299.04">
+          </label>
+          <label>Tesouro inicial
+            <input type="number" id="tesouroInicial" step="0.01" value="9546.30">
+          </label>
+          <label>Rentabilidade média CDB a.a. (%)
+            <input type="number" id="taxaCdb" step="0.1" value="10">
+          </label>
+          <label>Inflação média até 2029 (%)
+            <input type="number" id="inflacao" step="0.1" value="4.5">
+          </label>
+          <label>Taxa real Tesouro IPCA+ (%)
+            <input type="number" id="taxaTesouro" step="0.01" value="7.91">
+          </label>
+          <label>Meta da reserva
+            <input type="number" id="metaReserva" step="100" value="20000">
+          </label>
+          <label>Aporte reserva
+            <input type="number" id="aporteReserva" step="50" value="200">
+          </label>
+          <label>Aporte CDB após fev/2027
+            <input type="number" id="aporteCdb" step="50" value="800">
+          </label>
+          <label>Aporte carteira após fev/2027
+            <input type="number" id="aporteCarteira" step="50" value="400">
+          </label>
+          <label>Redirecionar reserva para CDB
+            <select id="redirecionar">
+              <option value="sim" selected>Sim</option>
+              <option value="nao">Não</option>
+            </select>
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="primary" onclick="recalcular()">Recalcular</button>
+          <button class="secondary" onclick="resetar()">Restaurar base</button>
+        </div>
+        <div class="note">
+          Até fevereiro/2027: R$ 200 no CDB, R$ 200 no Tesouro e R$ 200 na reserva. A partir de março/2027: usa os valores editáveis acima.
+        </div>
+      </div>
+    </div>
+
+    <div class="grid charts">
+      <div class="card">
+        <h2 class="section-title">Composição do patrimônio</h2>
+        <div class="chart-box"><canvas id="compositionChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Marcos</h2>
+        <div class="milestones" id="milestones"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Projeção mês a mês</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th>Idade</th>
+              <th>Aporte CDB</th>
+              <th>Aporte carteira</th>
+              <th>Aporte reserva</th>
+              <th>Saldo CDB</th>
+              <th>Saldo carteira</th>
+              <th>Saldo reserva</th>
+              <th>Patrimônio total</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaBody"></tbody>
+        </table>
+      </div>
+      <div class="note">
+        Valores nominais e aproximados. O CDI, a inflação, os títulos disponíveis após 2029 e a tributação real podem alterar os resultados.
+      </div>
+    </div>
+
+    <div class="footer">Dashboard pessoal de planejamento financeiro • pronto para GitHub Pages</div>
+  </div>
+
+<script>
+const fmtBRL = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v);
+const fmtBRL2 = v => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+const fmtDate = d => d.toLocaleDateString('pt-BR',{month:'short',year:'numeric'});
+
+let evolutionChart, compositionChart;
+
+function monthlyRate(annualPct){
+  return Math.pow(1 + annualPct/100, 1/12) - 1;
+}
+
+function idadeNaData(d){
+  let idade = d.getFullYear() - 2002;
+  if(d.getMonth() < 11) idade -= 1;
+  return idade;
+}
+
+function addMonth(d){
+  return new Date(d.getFullYear(), d.getMonth()+1, 1);
+}
+
+function getInputs(){
+  return {
+    cdbInicial:+document.getElementById('cdbInicial').value,
+    tesouroInicial:+document.getElementById('tesouroInicial').value,
+    taxaCdb:+document.getElementById('taxaCdb').value,
+    inflacao:+document.getElementById('inflacao').value,
+    taxaTesouro:+document.getElementById('taxaTesouro').value,
+    metaReserva:+document.getElementById('metaReserva').value,
+    aporteReserva:+document.getElementById('aporteReserva').value,
+    aporteCdb:+document.getElementById('aporteCdb').value,
+    aporteCarteira:+document.getElementById('aporteCarteira').value,
+    redirecionar:document.getElementById('redirecionar').value === 'sim'
+  };
+}
+
+function calcular(){
+  const p = getInputs();
+  const inicio = new Date(2026,8,1);
+  const fim = new Date(2040,11,1);
+  const vencTesouro = new Date(2029,4,15);
+
+  const rCdb = monthlyRate(p.taxaCdb);
+  const nominalTesouroAA = ((1+p.inflacao/100)*(1+p.taxaTesouro/100)-1)*100;
+  const rTesouro = monthlyRate(nominalTesouroAA);
+
+  let cdb = p.cdbInicial;
+  let carteira = p.tesouroInicial;
+  let reserva = 0;
+  let totalAportes = 0;
+  let rows = [];
+
+  for(let d = new Date(inicio); d <= fim; d = addMonth(d)){
+    let aporteCdb, aporteCarteira;
+
+    if(d < new Date(2027,2,1)){
+      aporteCdb = 200;
+      aporteCarteira = 200;
+    } else {
+      aporteCdb = p.aporteCdb;
+      aporteCarteira = p.aporteCarteira;
+    }
+
+    let aporteReserva = 0;
+    if(reserva < p.metaReserva){
+      aporteReserva = Math.min(p.aporteReserva, p.metaReserva - reserva);
+    } else if(p.redirecionar){
+      aporteCdb += p.aporteReserva;
+    }
+
+    cdb = cdb*(1+rCdb) + aporteCdb;
+    carteira = carteira*(1 + (d <= vencTesouro ? rTesouro : rCdb)) + aporteCarteira;
+    reserva = reserva*(1+rCdb) + aporteReserva;
+
+    totalAportes += aporteCdb + aporteCarteira + aporteReserva;
+
+    rows.push({
+      date:new Date(d),
+      idade:idadeNaData(d),
+      aporteCdb,
+      aporteCarteira,
+      aporteReserva,
+      cdb,
+      carteira,
+      reserva,
+      total:cdb+carteira+reserva
+    });
+  }
+
+  return {rows, totalAportes, inicial:p.cdbInicial+p.tesouroInicial, p};
+}
+
+function renderKPIs(data){
+  const last = data.rows[data.rows.length-1];
+  const investido = data.inicial + data.totalAportes;
+  document.getElementById('kpiInicial').textContent = fmtBRL(data.inicial);
+  document.getElementById('kpiFinal').textContent = fmtBRL(last.total);
+  document.getElementById('kpiInvestido').textContent = fmtBRL(investido);
+  document.getElementById('kpiRendimento').textContent = fmtBRL(last.total - investido);
+}
+
+function renderMilestones(rows){
+  const marks = [100000,200000,300000,500000,1000000];
+  const container = document.getElementById('milestones');
+  container.innerHTML = '';
+  marks.forEach(m=>{
+    const hit = rows.find(r=>r.total>=m);
+    const div = document.createElement('div');
+    div.className='milestone';
+    div.innerHTML = `<strong>${m===1000000?'R$ 1 milhão':fmtBRL(m)}</strong><span>${hit ? fmtDate(hit.date)+' • '+hit.idade+' anos' : 'Após 2040'}</span>`;
+    container.appendChild(div);
+  });
+}
+
+function renderTable(rows){
+  const body = document.getElementById('tabelaBody');
+  body.innerHTML = rows.map(r=>`
+    <tr>
+      <td>${fmtDate(r.date)}</td>
+      <td>${r.idade}</td>
+      <td>${fmtBRL2(r.aporteCdb)}</td>
+      <td>${fmtBRL2(r.aporteCarteira)}</td>
+      <td>${fmtBRL2(r.aporteReserva)}</td>
+      <td>${fmtBRL2(r.cdb)}</td>
+      <td>${fmtBRL2(r.carteira)}</td>
+      <td>${fmtBRL2(r.reserva)}</td>
+      <td><strong>${fmtBRL2(r.total)}</strong></td>
+    </tr>
+  `).join('');
+}
+
+function renderCharts(rows){
+  const labels = rows.map(r=>fmtDate(r.date));
+  const total = rows.map(r=>r.total);
+  const cdb = rows.map(r=>r.cdb);
+  const carteira = rows.map(r=>r.carteira);
+  const reserva = rows.map(r=>r.reserva);
+
+  if(evolutionChart) evolutionChart.destroy();
+  if(compositionChart) compositionChart.destroy();
+
+  evolutionChart = new Chart(document.getElementById('evolutionChart'),{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {
+          label:'Patrimônio total',
+          data:total,
+          borderColor:'#5aa9e6',
+          backgroundColor:'rgba(90,169,230,.12)',
+          fill:true,
+          tension:.25,
+          pointRadius:0,
+          borderWidth:2.5
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#dbeafe'}},
+        tooltip:{callbacks:{label:c=>fmtBRL2(c.raw)}}
+      },
+      scales:{
+        x:{ticks:{color:'#94a3b8',maxTicksLimit:12},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#94a3b8',callback:v=>fmtBRL(v)},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+
+  const last = rows[rows.length-1];
+  compositionChart = new Chart(document.getElementById('compositionChart'),{
+    type:'doughnut',
+    data:{
+      labels:['CDB principal','Carteira/Tesouro','Reserva'],
+      datasets:[{
+        data:[last.cdb,last.carteira,last.reserva],
+        backgroundColor:['#5aa9e6','#57cc99','#ffd166'],
+        borderColor:'#0d1b2a',
+        borderWidth:3
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{color:'#dbeafe'}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${fmtBRL2(c.raw)}`}}
+      }
+    }
+  });
+}
+
+function recalcular(){
+  const data = calcular();
+  renderKPIs(data);
+  renderMilestones(data.rows);
+  renderTable(data.rows);
+  renderCharts(data.rows);
+}
+
+function resetar(){
+  document.getElementById('cdbInicial').value = 9299.04;
+  document.getElementById('tesouroInicial').value = 9546.30;
+  document.getElementById('taxaCdb').value = 10;
+  document.getElementById('inflacao').value = 4.5;
+  document.getElementById('taxaTesouro').value = 7.91;
+  document.getElementById('metaReserva').value = 20000;
+  document.getElementById('aporteReserva').value = 200;
+  document.getElementById('aporteCdb').value = 800;
+  document.getElementById('aporteCarteira').value = 400;
+  document.getElementById('redirecionar').value = 'sim';
+  recalcular();
+}
+
+recalcular();
+</script>
+</body>
+</html>
